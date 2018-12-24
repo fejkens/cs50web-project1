@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+  {% block navlist %}
+    <li class="nav-item">
+      <a class="nav-link" href="/">Login</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/register">Register</a>
+    </li>
+  {% endblock %}
+  
+  {% block body %}
+  <div class="container-fluid formdiv">
+    <form class="form" action="#" method="post">
+      <input type="text" name="username" class="form-control" placeholder="Login" autocomplete="off">
+      <input type="password" name="password" class="form-control" placeholder="Password" autocomplete="off">
+      <button type="submit" class="btn btn-primary">Login</button>
+    </form>
+  </div>
+  {% endblock %}
