@@ -74,3 +74,45 @@ body, html {
   height: 24px;
   width: 250px;
 }
+
+.search {
+  height: 24px;
+  margin: 10px;
+  max-width: 700px;
+}
+
+.searchdiv {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  width: 100%;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+.searchdiv button {
+  height: 24px;
+  width: 50px;
+  margin: 10px;
+}
+
+.resultList {
+  padding: 75px 25px 75px 25px;
+}
+
+container-fluid {
+  box-sizing: border-box;
+}
+
+#searchcontainer {
+  padding: 0;
+}
+
+a {
+  color: black;
+}
+
+a:hover {
+  color: black;
+  text-decoration: none;
+}

@@ -23,10 +23,36 @@ engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
 
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
-  return render_template("index.html")
-
+  if "username" in session:
+    return render_template("index.html", username=session["username"])
+  else:
+    return redirect(url_for("login"))
+  
+@app.route("/login", methods=["GET", "POST"])
+def login():
+  if request.method == "GET":
+    return render_template("login.html")
+  else:
+    # Check if registered
+    if not db.execute("SELECT username FROM users WHERE username = :username", {"username": request.form.get("username")}).fetchone():
+      return "You're not registered!"
+    
+    username = request.form.get("username")
+    
+    if db.execute("SELECT password FROM users WHERE username = :username", {"username": username}).fetchone()[0] == request.form.get("password"):
+      # Correct pass
+      session["username"] = request.form.get("username")
+      return redirect(url_for("index"))
+    
+    return "Wrong password"
+  
+@app.route("/logout")
+def logout():
+  session.pop("username", None)
+  return redirect(url_for("login"))
+  
 @app.route("/register", methods=["GET", "POST"])
 def register():
   if request.method == "GET":
@@ -52,6 +78,8 @@ def register():
     
     db.commit()
     
+    session["username"] = username
+    
     # Return to index
     return redirect(url_for("index"))
   
@@ -60,3 +88,31 @@ def register():
     
     # Return already registered
     return "Already registered"
+  
+@app.route("/search", methods=["POST"])
+def search():
+  search = request.form.get("search")
+  search2 = "%" + search + "%"
+  
+  result = db.execute(
+    "SELECT * FROM books WHERE isbn = :search OR title = :search OR author = :search UNION SELECT * FROM books WHERE isbn LIKE :search OR title LIKE :search OR author LIKE :search UNION SELECT * FROM books WHERE isbn LIKE :search2 OR title LIKE :search2 OR author LIKE :search2",{"search": search, "search2": search2})
+  
+  return render_template("searchresults.html", result=result)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+  {% block navlist %}
+    <li class="nav-item">
+      <a class="nav-link" href="/logout">Log Out</a>
+    </li>
+  {% endblock %}
+  
+  {% block body %}
+  <div class="container-fluid" id="searchcontainer">
+    <ul class="resultList list-group">
+      {% for entry in result %}
+        <a href="#">
+          <li class="list-group-item">{{ entry.isbn }}, {{ entry.title }}, {{ entry.author }}, {{ entry.year }}</li>
+        </a>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endblock %}
