@@ -95,7 +95,10 @@ def search():
   search2 = "%" + search + "%"
   
   result = db.execute(
-    "SELECT * FROM books WHERE isbn = :search OR title = :search OR author = :search UNION SELECT * FROM books WHERE isbn LIKE :search OR title LIKE :search OR author LIKE :search UNION SELECT * FROM books WHERE isbn LIKE :search2 OR title LIKE :search2 OR author LIKE :search2",{"search": search, "search2": search2})
+    "SELECT * FROM books WHERE UPPER(isbn) = UPPER(:search) OR UPPER(title) = UPPER(:search) OR UPPER(author) = UPPER(:search) UNION SELECT * FROM books WHERE UPPER(isbn) LIKE UPPER(:search) OR UPPER(title) LIKE UPPER(:search) OR UPPER(author) LIKE UPPER(:search) UNION SELECT * FROM books WHERE UPPER(isbn) LIKE UPPER(:search2) OR UPPER(title) LIKE UPPER(:search2) OR UPPER(author) LIKE UPPER(:search2)",{"search": search, "search2": search2}).fetchall()
+
+  if not result:
+    return render_template("error.html", error="No results")
   
   return render_template("searchresults.html", result=result)
 

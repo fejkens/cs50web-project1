@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+  {% block navlist %}
+    <li class="nav-item">
+      <a class="nav-link" href="/logout">Log Out</a>
+    </li>
+  {% endblock %}
+  
+  {% block body %}
+  <div class="container-fluid" id="searchcontainer errorcontainer">
+    <p class="error">{{ error }}</p>
+  </div>
+  {% endblock %}

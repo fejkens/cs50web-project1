@@ -116,3 +116,7 @@ a:hover {
   color: black;
   text-decoration: none;
 }
+
+#errorcontainer {
+  padding-top: 50px;
+}
