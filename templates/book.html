@@ -9,9 +9,10 @@
   <div class="container-fluid" id="searchcontainer">
     <ul class="resultList list-group">
       {% for entry in result %}
-        <a href="/book/{{ entry.isbn }}">
-          <li class="list-group-item">{{ entry.isbn }}, {{ entry.title }}, {{ entry.author }}, {{ entry.year }}</li>
-        </a>
+          <li class="list-group-item">ISBN: {{ entry.isbn }}</li>
+          <li class="list-group-item">Title: {{ entry.title }}</li>
+          <li class="list-group-item">Author: {{ entry.author }}</li>
+          <li class="list-group-item">Year: {{ entry.year }}</li>
       {% endfor %}
     </ul>
   </div>

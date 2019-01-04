@@ -98,11 +98,19 @@ def search():
     "SELECT * FROM books WHERE UPPER(isbn) = UPPER(:search) OR UPPER(title) = UPPER(:search) OR UPPER(author) = UPPER(:search) UNION SELECT * FROM books WHERE UPPER(isbn) LIKE UPPER(:search) OR UPPER(title) LIKE UPPER(:search) OR UPPER(author) LIKE UPPER(:search) UNION SELECT * FROM books WHERE UPPER(isbn) LIKE UPPER(:search2) OR UPPER(title) LIKE UPPER(:search2) OR UPPER(author) LIKE UPPER(:search2)",{"search": search, "search2": search2}).fetchall()
 
   if not result:
-    return render_template("error.html", error="No results")
+    return render_template("error.html", error="No results found")
   
   return render_template("searchresults.html", result=result)
 
+@app.route("/book/<isbn>")
+def book(isbn):
+	# take isbn and return book info
+	result = db.execute("SELECT * FROM books WHERE isbn = :isbn", {"isbn": isbn})
 
+	if not result:
+		return render_template("error.html", error="Book info not found")
+
+	return render_template("book.html", result=result)
 
 
 
