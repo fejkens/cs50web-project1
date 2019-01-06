@@ -15,5 +15,49 @@
           <li class="list-group-item">Year: {{ entry.year }}</li>
       {% endfor %}
     </ul>
+    <ul class="resultList list-group">
+          <li class="list-group-item">Average Goodreads score: {{ avScore }} / 5</li>
+          <li class="list-group-item">Total Goodreads ratings: {{ ratingsCount }}</li>
+    </ul>
+    {% if showreviewbox == 1 %}
+      <!-- Show the textbox and radio buttons for review -->
+      <form action="/submitreview" method="POST">
+        <div class="form-group">
+          <textarea class="form-control" id="reviewbox" placeholder="Submit your review..." rows="1" name="review"></textarea>
+        </div>
+
+        <div class="form-group radio-group">
+          <p>Score:</p>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="score" value="1" id="score1">
+            <label class="form-check-label" for="score1">1</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="score" value="2" id="score2">
+            <label class="form-check-label" for="score2">2</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="score" value="3" id="score3">
+            <label class="form-check-label" for="score3">3</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="score" value="4" id="score4">
+            <label class="form-check-label" for="score4">4</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="score" value="5" id="score5">
+            <label class="form-check-label" for="score5">5</label>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary submitReview">Submit review</button>
+        <input type="hidden" name="isbn" value="{{ isbn }}"/>
+      </form>
+    {% elif showreviewbox == 0 %}
+      <ul class="resultList list-group">
+        <p>Submitted review:</p>
+          <li class="list-group-item">{{ review.score }} / 5</li>
+          <li class="list-group-item">{{ review.review }}</li>
+    </ul>
+    {% endif %}
   </div>
   {% endblock %}

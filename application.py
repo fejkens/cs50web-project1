@@ -1,4 +1,5 @@
 import os
+import requests
 
 from flask import Flask, session, render_template, request, redirect, url_for
 from flask_session import Session
@@ -105,15 +106,48 @@ def search():
 @app.route("/book/<isbn>")
 def book(isbn):
 	# take isbn and return book info
-	result = db.execute("SELECT * FROM books WHERE isbn = :isbn", {"isbn": isbn})
+	result = db.execute("SELECT * FROM books WHERE isbn = :isbn", {"isbn": isbn}).fetchall()
 
 	if not result:
 		return render_template("error.html", error="Book info not found")
 
-	return render_template("book.html", result=result)
+	# Check if user submitted a review for this book
 
+	userid = db.execute("SELECT userid FROM users WHERE username = :username", {"username": session["username"]}).fetchone()[0]
+	bookid = db.execute("SELECT book_id FROM books WHERE isbn = :isbn", {"isbn": isbn}).fetchone()[0]
 
+	review = db.execute("SELECT * FROM reviews WHERE user_id = :userid AND book_id = :book_id", {"userid": userid, "book_id": bookid}).fetchone()
+	
+	showreviewbox = 0
 
+	if not review:
+		showreviewbox = 1
+
+	res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "qa0oeL0h0XP2WUrWWLekhw", "isbns": isbn}).json()
+	ratingsCount = res["books"][0]["work_ratings_count"]
+	avScore = res["books"][0]["average_rating"]
+
+	return render_template("book.html", result=result, showreviewbox=showreviewbox, review=review, isbn=isbn, ratingsCount=ratingsCount, avScore=avScore)
+
+# session["username"] has the current user stored
+# Check if review already submitted for this user
+# if yes then get that review and display
+# otherwise show a box to submit a review
+
+@app.route("/submitreview", methods=["POST"])
+def submitreview():
+	textReview = request.form.get("review")
+	scoreReview = request.form.get("score")
+	username = session["username"]
+	isbn = request.form.get("isbn")
+
+	bookid = db.execute('SELECT "book_id" FROM books WHERE isbn = :isbn', {"isbn": isbn}).fetchone()[0]
+	userid = db.execute('SELECT userid FROM users WHERE username = :username', {"username": username}).fetchone()[0]
+
+	db.execute('INSERT INTO reviews ("book_id", "user_id", "score", "review") VALUES (:bookid, :userid, :score, :review)', {"bookid": bookid, "userid": userid, "score": scoreReview, "review": textReview})
+	db.commit()
+
+	return redirect(url_for("book", isbn=isbn))
 
 
 
