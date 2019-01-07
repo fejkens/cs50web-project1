@@ -1,8 +1,17 @@
 {% extends "layout.html" %}
   {% block navlist %}
+    {% if session["username"]|length > 0 %}
     <li class="nav-item">
       <a class="nav-link" href="/logout">Log Out</a>
     </li>
+    {% else %}
+    <li class="nav-item">
+      <a class="nav-link" href="/">Login</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/register">Register</a>
+    </li>
+    {% endif %}
   {% endblock %}
   
   {% block body %}

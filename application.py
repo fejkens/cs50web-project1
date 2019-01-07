@@ -6,6 +6,7 @@ from flask import Flask, session, render_template, request, redirect, url_for, R
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
@@ -27,86 +28,101 @@ db = scoped_session(sessionmaker(bind=engine))
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+
   if "username" in session:
+  	# If user is already logged in render the index page
     return render_template("index.html", username=session["username"])
   else:
+  	# Otherwise redirect to login page
     return redirect(url_for("login"))
   
 @app.route("/login", methods=["GET", "POST"])
 def login():
+
   if request.method == "GET":
+  	# If GET request, render the login page
     return render_template("login.html")
   else:
-    # Check if registered
+    # Otherwise check if user is registered
     if not db.execute("SELECT username FROM users WHERE username = :username", {"username": request.form.get("username")}).fetchone():
-      return "You're not registered!"
+      return render_template("error.html", error="You're not registered")
     
-    username = request.form.get("username")
-    
-    if db.execute("SELECT password FROM users WHERE username = :username", {"username": username}).fetchone()[0] == request.form.get("password"):
-      # Correct pass
+    # If user is registered, check the password
+    if check_password_hash(db.execute("SELECT password FROM users WHERE username = :username", {"username": request.form.get("username")}).fetchone()[0], request.form.get("password")):
+      # If password correct, log the user in and redirect to index page
       session["username"] = request.form.get("username")
       return redirect(url_for("index"))
     
-    return "Wrong password"
+    # Otherwise, return error
+    return render_template("error.html", error="Wrong password")
   
 @app.route("/logout")
 def logout():
+
+	# Clear the user from the session and redirect to the login page
   session.pop("username", None)
   return redirect(url_for("login"))
   
 @app.route("/register", methods=["GET", "POST"])
 def register():
+
+	# If GET request, render the register page
   if request.method == "GET":
     return render_template("register.html")
   
   username = request.form.get("username")
-  password = request.form.get("password")
-  confirmation = request.form.get("confirmation")
+  password = generate_password_hash(request.form.get("password"))
+  confirmation = generate_password_hash(request.form.get("confirmation"))
   
+  if len(request.form.get("password")) < 5:
+  	return render_template("error.html", error="Password too short")
+
   # Check if fields filled in
   if not username or not password or not confirmation:
-    return "Missing fields"
+    return render_template("error.html", error="Fields are missing")
   
   # Check if passwords match
-  if not password == confirmation:
-    return "Passwords do not match"
+  if not request.form.get("password") == request.form.get("confirmation"):
+    return render_template("error.html", error="Passwords do not match")
   
   # Check if username does not exists in the database
-  if not db.execute("SELECT username FROM users WHERE username = :username", {"username": username}).first():
+  if not db.execute("SELECT UPPER(username) FROM users WHERE UPPER(username) = UPPER(:username)", {"username": username}).first():
     
     # Insert the user into the table
     db.execute("INSERT INTO users (username, password) VALUES (:username, :password)", {"username": username, "password": password})
-    
     db.commit()
     
+    # Log the user in and redirect to index page
     session["username"] = username
-    
-    # Return to index
     return redirect(url_for("index"))
   
-  # Check if username already exists in the database
-  if db.execute("SELECT username FROM users WHERE username = :username", {"username": username}).first()[0] == username:
-    
-    # Return already registered
-    return "Already registered"
-  
+  else:
+
+  	# Return already registered
+    return render_template("error.html", error="Already registered")
+
 @app.route("/search", methods=["POST"])
 def search():
+
+	# Prepare search variables, search for exact results and search2 for similar results
   search = request.form.get("search")
   search2 = "%" + search + "%"
   
+  # Search query
   result = db.execute(
     "SELECT * FROM books WHERE UPPER(isbn) = UPPER(:search) OR UPPER(title) = UPPER(:search) OR UPPER(author) = UPPER(:search) UNION SELECT * FROM books WHERE UPPER(isbn) LIKE UPPER(:search) OR UPPER(title) LIKE UPPER(:search) OR UPPER(author) LIKE UPPER(:search) UNION SELECT * FROM books WHERE UPPER(isbn) LIKE UPPER(:search2) OR UPPER(title) LIKE UPPER(:search2) OR UPPER(author) LIKE UPPER(:search2)",{"search": search, "search2": search2}).fetchall()
 
+  # If no results found
   if not result:
     return render_template("error.html", error="No results found")
   
+  # Render the results page
   return render_template("searchresults.html", result=result)
 
 @app.route("/book/<isbn>")
 def book(isbn):
-  # take isbn and return book info
+
+  # Take isbn and return book info
   result = db.execute("SELECT * FROM books WHERE isbn = :isbn", {"isbn": isbn}).fetchall()
 
   if not result:
@@ -121,9 +137,11 @@ def book(isbn):
 
   showreviewbox = 0
 
+  # If no reviews submitted, show the review box on the page
   if not review:
       showreviewbox = 1
 
+  # Fetch goodreads data for the book
   res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "qa0oeL0h0XP2WUrWWLekhw", "isbns": isbn}).json()
   ratingsCount = res["books"][0]["work_ratings_count"]
   avScore = res["books"][0]["average_rating"]
@@ -132,18 +150,17 @@ def book(isbn):
 
 @app.route("/submitreview", methods=["POST"])
 def submitreview():
-  textReview = request.form.get("review")
-  scoreReview = request.form.get("score")
-  username = session["username"]
-  isbn = request.form.get("isbn")
 
-  bookid = db.execute('SELECT "book_id" FROM books WHERE isbn = :isbn', {"isbn": isbn}).fetchone()[0]
-  userid = db.execute('SELECT userid FROM users WHERE username = :username', {"username": username}).fetchone()[0]
+	# Get the book and user ids
+  bookid = db.execute('SELECT "book_id" FROM books WHERE isbn = :isbn', {"isbn": request.form.get("isbn")}).fetchone()[0]
+  userid = db.execute('SELECT userid FROM users WHERE username = :username', {"username": session["username"]}).fetchone()[0]
 
-  db.execute('INSERT INTO reviews ("book_id", "user_id", "score", "review") VALUES (:bookid, :userid, :score, :review)', {"bookid": bookid, "userid": userid, "score": scoreReview, "review": textReview})
+  # Submit the review
+  db.execute('INSERT INTO reviews ("book_id", "user_id", "score", "review") VALUES (:bookid, :userid, :score, :review)', {"bookid": bookid, "userid": userid, "score": request.form.get("score"), "review": request.form.get("review")})
   db.commit()
 
-  return redirect(url_for("book", isbn=isbn))
+  # Return to the page
+  return redirect(url_for("book", isbn=request.form.get("isbn")))
 
 @app.route("/api/<isbn>")
 def api(isbn):
@@ -163,7 +180,7 @@ def api(isbn):
     "average_score": avScore
   }]
 
-  return Response(json.dumps(result), mimetype='application/json')
+  return app.response_class(json.dumps(result), status=200, mimetype='application/json')
 
 
 
